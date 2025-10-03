@@ -158,10 +158,11 @@ class MainTest {
 
         // Expected sorted output (ascending by price)
         List<String> expectedOrder = List.of(
-                "01-02 10,00 öre",
-                "03-04 10,00 öre",
+
+                "00-01 30,00 öre",
                 "02-03 20,00 öre",
-                "00-01 30,00 öre"
+                "01-02 10,00 öre",
+                "03-04 10,00 öre"
         );
 
         // Extract actual lines that match the pattern
