@@ -25,7 +25,7 @@ public class ElprisCLI implements Runnable {
     @Option(names = "--zone", description = "Elområde: SE1, SE2, SE3, SE4")
     private String zone;
 
-    @Option(names = "--sorted", description = "Sortera priser i fallande ordning (true/false)")
+    @Option(names = "--sorted", description = "Sortera priser i fallande ordning", defaultValue = "false")
     private boolean sorted;
 
 
@@ -77,28 +77,11 @@ public class ElprisCLI implements Runnable {
 
 
         List<Map.Entry<LocalDateTime, Double>> timpriser = beräknaTimpriser(priser);
-        if (sorted) {
-            timpriser = timpriser.stream()
-                    .sorted((a, b) -> {
-                        int prisJämf = Double.compare(b.getValue(), a.getValue()); // fallande pris
-                        if (prisJämf != 0) return prisJämf;
-                        return a.getKey().compareTo(b.getKey()); // stigande tid vid lika pris
-                    })
-                    .collect(Collectors.toList());
-        } else {
-            timpriser = timpriser.stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .collect(Collectors.toList());
-        }
-        System.out.println("\nElpriser per timme:");
-        for (var entry : timpriser) {
-            String start = String.format("%02d", entry.getKey().getHour());
-            String end = String.format("%02d", entry.getKey().plusHours(1).getHour());
-            String tid = start + "-" + end;
-            String pris = String.format("%.2f", entry.getValue() * 100).replace('.', ',');
-            System.out.println(tid + " " + pris + " öre");
+        timpriser = sorted
+                ? sorteraFallandeMedTid(timpriser)
+                : timpriser.stream().sorted(Map.Entry.comparingByKey()).collect(Collectors.toList());
 
-        }
+        skrivUtTimpriser(timpriser);
 
 
         skrivUtStatistik(priser, datum);
@@ -131,6 +114,27 @@ public class ElprisCLI implements Runnable {
                 .sorted(Comparator.comparingDouble(ElpriserAPI.Elpris::sekPerKWh).reversed())
                 .collect(Collectors.toList());
     }
+    public static List<Map.Entry<LocalDateTime, Double>> sorteraFallandeMedTid(List<Map.Entry<LocalDateTime, Double>> lista) {
+        return lista.stream()
+                .sorted((a, b) -> {
+                    int prisJämf = Double.compare(b.getValue(), a.getValue());
+                    if (prisJämf != 0) return prisJämf;
+                    return a.getKey().compareTo(b.getKey());
+                })
+                .collect(Collectors.toList());
+    }
+
+    public void skrivUtTimpriser(List<Map.Entry<LocalDateTime, Double>> timpriser) {
+        System.out.println("\nElpriser per timme:");
+        for (var entry : timpriser) {
+            String start = String.format("%02d", entry.getKey().getHour());
+            String end = String.format("%02d", entry.getKey().plusHours(1).getHour());
+            String tid = start + "-" + end;
+            String pris = String.format("%.2f", entry.getValue() * 100).replace('.', ',');
+            System.out.println(tid + " " + pris + " öre");
+        }
+    }
+
     public void skrivUtStatistik(List<ElpriserAPI.Elpris> priser, LocalDate datum) {
         List<Map.Entry<LocalDateTime, Double>> timpriser = beräknaTimpriser(priser);
         double total = 0;
